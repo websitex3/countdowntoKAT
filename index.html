@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Countdown to KAT & Snake</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+            background-size: 400% 400%;
+            animation: gradient-animation 15s ease infinite;
+            overflow: hidden;
+        }
+        @keyframes gradient-animation {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        canvas {
+            background-color: #2c3e50;
+            border-radius: 1rem;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+            touch-action: none;
+        }
+        .game-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 1rem;
+            text-align: center;
+            display: none;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen p-4 space-y-8 lg:space-y-0 lg:space-x-8">
+
+    <!-- Overall Content Wrapper -->
+    <div class="flex flex-col lg:flex-row items-center justify-center w-full max-w-5xl space-y-8 lg:space-y-0 lg:space-x-8">
+    
+        <!-- Countdown Timer Container -->
+        <div id="timer-container" class="bg-white bg-opacity-90 rounded-3xl p-4 shadow-2xl backdrop-filter backdrop-blur-lg flex flex-col items-center transform transition-all duration-500 ease-in-out w-48 text-center flex-shrink-0">
+            <h1 class="text-xl font-bold text-gray-800 mb-2">
+                Countdown to KAT
+            </h1>
+            <div class="grid grid-cols-2 gap-2 w-full text-center">
+                <div class="flex flex-col items-center bg-gray-100 rounded-lg p-2 shadow-inner">
+                    <span id="days" class="text-xl font-extrabold text-blue-600">0</span>
+                    <span class="text-xs text-gray-500 uppercase mt-1 font-bold">Days</span>
+                </div>
+                <div class="flex flex-col items-center bg-gray-100 rounded-lg p-2 shadow-inner">
+                    <span id="hours" class="text-xl font-extrabold text-blue-600">0</span>
+                    <span class="text-xs text-gray-500 uppercase mt-1 font-bold">Hours</span>
+                </div>
+                <div class="flex flex-col items-center bg-gray-100 rounded-lg p-2 shadow-inner">
+                    <span id="minutes" class="text-xl font-extrabold text-blue-600">0</span>
+                    <span class="text-xs text-gray-500 uppercase mt-1 font-bold">Mins</span>
+                </div>
+                <div class="flex flex-col items-center bg-gray-100 rounded-lg p-2 shadow-inner">
+                    <span id="seconds" class="text-xl font-extrabold text-blue-600">0</span>
+                    <span class="text-xs text-gray-500 uppercase mt-1 font-bold">Secs</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Game Content -->
+        <div class="flex flex-col items-center justify-center p-4">
+            <h2 class="text-3xl font-bold text-white mb-4">Snake</h2>
+            <div class="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4 mb-4">
+                <div class="text-white text-2xl font-bold">Score: <span id="score">0</span></div>
+            </div>
+            <canvas id="gameCanvas"></canvas>
+            <div id="game-message" class="game-message">
+                <h3 class="text-xl md:text-2xl font-bold mb-2">Game Over</h3>
+                <p class="text-lg mb-4">Score: <span id="final-score">0</span></p>
+                <button id="restartBtn" class="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl shadow-lg transition-transform transform hover:scale-105 active:scale-95">
+                    Play Again
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- End Message for Countdown -->
+    <div id="end-message" class="hidden fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-70 text-white text-3xl md:text-5xl font-bold text-center p-4">
+        The countdown has finished!
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- Countdown Timer Logic ---
+            const timerContainer = document.getElementById('timer-container');
+            const daysSpan = document.getElementById('days');
+            const hoursSpan = document.getElementById('hours');
+            const minutesSpan = document.getElementById('minutes');
+            const secondsSpan = document.getElementById('seconds');
+            const endMessageDiv = document.getElementById('end-message');
+
+            const targetDate = new Date('2025-09-08T08:00:00');
+            let countdownInterval = null;
+
+            function updateCountdown() {
+                const now = new Date().getTime();
+                const distance = targetDate - now;
+
+                if (distance < 0) {
+                    clearInterval(countdownInterval);
+                    timerContainer.remove();
+                    endMessageDiv.classList.remove('hidden');
+                    return;
+                }
+
+                const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+                daysSpan.textContent = days;
+                hoursSpan.textContent = hours;
+                minutesSpan.textContent = minutes;
+                secondsSpan.textContent = seconds;
+            }
+
+            // Start the timer automatically
+            countdownInterval = setInterval(updateCountdown, 1000);
+
+            // --- Snake Game Logic ---
+            const canvas = document.getElementById('gameCanvas');
+            const ctx = canvas.getContext('2d');
+            const scoreDisplay = document.getElementById('score');
+            const gameMessage = document.getElementById('game-message');
+            const finalScoreDisplay = document.getElementById('final-score');
+            const restartBtn = document.getElementById('restartBtn');
+
+            const gridSize = 20;
+            let snake = [];
+            let food = {};
+            let score = 0;
+            let direction = 'right';
+            let changingDirection = false;
+            let gameLoop = null;
+
+            // Resize canvas to be responsive
+            function resizeCanvas() {
+                const gameContainer = document.querySelector('.flex-col.items-center.justify-center');
+                const availableHeight = window.innerHeight - gameContainer.getBoundingClientRect().top - 20; // Subtract padding/margin
+                const availableWidth = window.innerWidth;
+                const size = Math.min(availableWidth, availableHeight, 400); // Max size of 400px
+                canvas.width = size - (size % gridSize); 
+                canvas.height = size - (size % gridSize);
+            }
+
+            // Start game function
+            function startGame() {
+                score = 0;
+                scoreDisplay.textContent = score;
+                snake = [{ x: 10, y: 10 }];
+                direction = 'right';
+                changingDirection = false;
+                gameMessage.style.display = 'none';
+                createFood();
+                if (gameLoop) clearInterval(gameLoop);
+                gameLoop = setInterval(update, 150); // Slower initial speed
+            }
+
+            // Create new food at a random location
+            function createFood() {
+                food = {
+                    x: Math.floor(Math.random() * (canvas.width / gridSize)),
+                    y: Math.floor(Math.random() * (canvas.height / gridSize))
+                };
+                // Ensure food doesn't spawn on the snake
+                snake.forEach(segment => {
+                    if (segment.x === food.x && segment.y === food.y) {
+                        createFood();
+                    }
+                });
+            }
+
+            // Update game state
+            function update() {
+                if (gameOver()) {
+                    clearInterval(gameLoop);
+                    finalScoreDisplay.textContent = score;
+                    gameMessage.style.display = 'block';
+                    return;
+                }
+                
+                const head = { x: snake[0].x, y: snake[0].y };
+
+                switch (direction) {
+                    case 'up': head.y--; break;
+                    case 'down': head.y++; break;
+                    case 'left': head.x--; break;
+                    case 'right': head.x++; break;
+                }
+                snake.unshift(head);
+
+                if (head.x === food.x && head.y === food.y) {
+                    score++;
+                    scoreDisplay.textContent = score;
+                    createFood();
+                } else {
+                    snake.pop();
+                }
+
+                changingDirection = false;
+                draw();
+            }
+
+            // Draw game elements
+            function draw() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                drawSnake();
+                drawFood();
+            }
+
+            function drawSnake() {
+                snake.forEach(segment => {
+                    ctx.fillStyle = '#2ecc71';
+                    ctx.fillRect(segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
+                    ctx.strokeStyle = '#27ae60';
+                    ctx.strokeRect(segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
+                });
+            }
+
+            function drawFood() {
+                ctx.fillStyle = '#e74c3c';
+                ctx.fillRect(food.x * gridSize, food.y * gridSize, gridSize, gridSize);
+                ctx.strokeStyle = '#c0392b';
+                ctx.strokeRect(food.x * gridSize, food.y * gridSize, gridSize, gridSize);
+            }
+
+            // Check for game over conditions
+            function gameOver() {
+                const head = snake[0];
+                // Collision with walls
+                if (head.x < 0 || head.x * gridSize >= canvas.width || head.y < 0 || head.y * gridSize >= canvas.height) {
+                    return true;
+                }
+                // Collision with self
+                for (let i = 1; i < snake.length; i++) {
+                    if (snake[i].x === head.x && snake[i].y === head.y) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            // Handle keyboard input
+            document.addEventListener('keydown', e => {
+                if (changingDirection) return;
+                changingDirection = true;
+                const keyPressed = e.key;
+                const goingUp = direction === 'up';
+                const goingDown = direction === 'down';
+                const goingLeft = direction === 'left';
+                const goingRight = direction === 'right';
+
+                if (keyPressed === 'ArrowLeft' && !goingRight) { direction = 'left'; }
+                if (keyPressed === 'ArrowUp' && !goingDown) { direction = 'up'; }
+                if (keyPressed === 'ArrowRight' && !goingLeft) { direction = 'right'; }
+                if (keyPressed === 'ArrowDown' && !goingUp) { direction = 'down'; }
+            });
+
+            // Handle touch input for mobile devices
+            let touchStartX = 0;
+            let touchStartY = 0;
+            canvas.addEventListener('touchstart', e => {
+                e.preventDefault();
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+            });
+            canvas.addEventListener('touchend', e => {
+                const touchEndX = e.changedTouches[0].clientX;
+                const touchEndY = e.changedTouches[0].clientY;
+                const dx = touchEndX - touchStartX;
+                const dy = touchEndY - touchStartY;
+                
+                if (changingDirection) return;
+                changingDirection = true;
+                
+                const goingUp = direction === 'up';
+                const goingDown = direction === 'down';
+                const goingLeft = direction === 'left';
+                const goingRight = direction === 'right';
+                
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    // Horizontal swipe
+                    if (dx > 0 && !goingLeft) { direction = 'right'; }
+                    else if (dx < 0 && !goingRight) { direction = 'left'; }
+                } else {
+                    // Vertical swipe
+                    if (dy > 0 && !goingUp) { direction = 'down'; }
+                    else if (dy < 0 && !goingDown) { direction = 'up'; }
+                }
+            });
+
+            // Initial setup
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            restartBtn.addEventListener('click', startGame);
+            startGame();
+        });
+    </script>
+</body>
+</html>
