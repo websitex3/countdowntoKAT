@@ -16,7 +16,6 @@
             background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
             background-size: 400% 400%;
             animation: gradient-animation 15s ease infinite;
-            overflow: hidden;
         }
         @keyframes gradient-animation {
             0% { background-position: 0% 50%; }
@@ -153,9 +152,9 @@
             // Resize canvas to be responsive
             function resizeCanvas() {
                 const gameContainer = document.querySelector('.flex-col.items-center.justify-center');
-                const availableHeight = window.innerHeight - gameContainer.getBoundingClientRect().top - 20; // Subtract padding/margin
+                const availableHeight = window.innerHeight - gameContainer.getBoundingClientRect().top - 20;
                 const availableWidth = window.innerWidth;
-                const size = Math.min(availableWidth, availableHeight, 400); // Max size of 400px
+                const size = Math.min(availableWidth, availableHeight, 400);
                 canvas.width = size - (size % gridSize); 
                 canvas.height = size - (size % gridSize);
             }
@@ -170,7 +169,7 @@
                 gameMessage.style.display = 'none';
                 createFood();
                 if (gameLoop) clearInterval(gameLoop);
-                gameLoop = setInterval(update, 150); // Slower initial speed
+                gameLoop = setInterval(update, 150);
             }
 
             // Create new food at a random location
