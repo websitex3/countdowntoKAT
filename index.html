@@ -10,12 +10,21 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- FAVICON LINK ADDED -->
+    <!-- Pointing to the raw GitHub image URL for correct favicon loading -->
+    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/websitex3/countdowntoKAT/main/KAT.png" />
+    
     <style>
         body {
             font-family: 'Inter', sans-serif;
             background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
             background-size: 400% 400%;
             animation: gradient-animation 15s ease infinite;
+            /* Ensure body takes up the full viewport height */
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
         @keyframes gradient-animation {
             0% { background-position: 0% 50%; }
@@ -46,7 +55,7 @@
 <body class="flex flex-col items-center justify-center min-h-screen p-4 space-y-8 lg:space-y-0 lg:space-x-8">
 
     <!-- Overall Content Wrapper -->
-    <div class="flex flex-col lg:flex-row items-center justify-center w-full max-w-5xl space-y-8 lg:space-y-0 lg:space-x-8">
+    <div class="flex flex-col lg:flex-row items-center justify-center w-full max-w-5xl space-y-8 lg:space-y-0 lg:space-x-8 flex-grow">
     
         <!-- Countdown Timer Container -->
         <div id="timer-container" class="bg-white bg-opacity-90 rounded-3xl p-4 shadow-2xl backdrop-filter backdrop-blur-lg flex flex-col items-center transform transition-all duration-500 ease-in-out w-48 text-center flex-shrink-0">
@@ -94,6 +103,14 @@
     <div id="end-message" class="hidden fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-70 text-white text-3xl md:text-5xl font-bold text-center p-4">
         The countdown has finished!
     </div>
+
+    <!-- HOMEPAGE LINK UPDATED: Now uses bright indigo/purple for a system-like glow -->
+    <a href="https://websitex3.github.io/home/" 
+       class="mt-8 mb-4 text-2xl font-extrabold text-indigo-400 hover:text-indigo-300 hover:underline transition-all duration-300 drop-shadow-2xl"
+       style="text-shadow: 0 0 15px rgba(129, 140, 248, 1), 0 0 5px rgba(129, 140, 248, 0.5);"
+    >
+        Samuel's Homepage
+    </a>
     
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -131,6 +148,7 @@
             }
 
             // Start the timer automatically
+            updateCountdown();
             countdownInterval = setInterval(updateCountdown, 1000);
 
             // --- Snake Game Logic ---
@@ -151,19 +169,32 @@
 
             // Resize canvas to be responsive
             function resizeCanvas() {
-                const gameContainer = document.querySelector('.flex-col.items-center.justify-center');
-                const availableHeight = window.innerHeight - gameContainer.getBoundingClientRect().top - 20;
-                const availableWidth = window.innerWidth;
-                const size = Math.min(availableWidth, availableHeight, 400);
-                canvas.width = size - (size % gridSize); 
-                canvas.height = size - (size % gridSize);
+                // Determine a max square size based on screen width/height, ensuring it's a multiple of gridSize
+                const maxDim = 400; // Max size for desktop view
+                const size = Math.min(window.innerWidth - 60, window.innerHeight - 200, maxDim);
+                // Ensure size is a multiple of gridSize
+                const canvasSize = size - (size % gridSize);
+
+                canvas.width = canvasSize;
+                canvas.height = canvasSize;
+                
+                // Re-draw game when resized to prevent visual artifacts
+                if (gameLoop) {
+                    draw();
+                }
             }
 
             // Start game function
             function startGame() {
                 score = 0;
                 scoreDisplay.textContent = score;
-                snake = [{ x: 10, y: 10 }];
+                // Start snake near the center
+                const cellsX = canvas.width / gridSize;
+                const cellsY = canvas.height / gridSize;
+                const startX = Math.floor(cellsX / 4);
+                const startY = Math.floor(cellsY / 2);
+
+                snake = [{ x: startX, y: startY }];
                 direction = 'right';
                 changingDirection = false;
                 gameMessage.style.display = 'none';
@@ -174,9 +205,12 @@
 
             // Create new food at a random location
             function createFood() {
+                const cellsX = canvas.width / gridSize;
+                const cellsY = canvas.height / gridSize;
+
                 food = {
-                    x: Math.floor(Math.random() * (canvas.width / gridSize)),
-                    y: Math.floor(Math.random() * (canvas.height / gridSize))
+                    x: Math.floor(Math.random() * cellsX),
+                    y: Math.floor(Math.random() * cellsY)
                 };
                 // Ensure food doesn't spawn on the snake
                 snake.forEach(segment => {
@@ -191,6 +225,10 @@
                 if (gameOver()) {
                     clearInterval(gameLoop);
                     finalScoreDisplay.textContent = score;
+                    // Center the game message on the screen relative to the canvas/game area
+                    const canvasRect = canvas.getBoundingClientRect();
+                    gameMessage.style.top = `${canvasRect.top + canvasRect.height / 2}px`;
+                    gameMessage.style.left = `${canvasRect.left + canvasRect.width / 2}px`;
                     gameMessage.style.display = 'block';
                     return;
                 }
@@ -220,13 +258,15 @@
             // Draw game elements
             function draw() {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
+                // Background color defined in CSS, no need to fill here unless overwriting
                 drawSnake();
                 drawFood();
             }
 
             function drawSnake() {
-                snake.forEach(segment => {
-                    ctx.fillStyle = '#2ecc71';
+                snake.forEach((segment, index) => {
+                    // Head is slightly brighter
+                    ctx.fillStyle = index === 0 ? '#34d399' : '#2ecc71'; 
                     ctx.fillRect(segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
                     ctx.strokeStyle = '#27ae60';
                     ctx.strokeRect(segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
@@ -235,9 +275,16 @@
 
             function drawFood() {
                 ctx.fillStyle = '#e74c3c';
-                ctx.fillRect(food.x * gridSize, food.y * gridSize, gridSize, gridSize);
-                ctx.strokeStyle = '#c0392b';
-                ctx.strokeRect(food.x * gridSize, food.y * gridSize, gridSize, gridSize);
+                ctx.beginPath();
+                // Draw food as a circle for better look
+                ctx.arc(
+                    food.x * gridSize + gridSize / 2, 
+                    food.y * gridSize + gridSize / 2, 
+                    gridSize / 2 * 0.8, // 80% of the cell size
+                    0, 
+                    2 * Math.PI
+                );
+                ctx.fill();
             }
 
             // Check for game over conditions
@@ -266,10 +313,10 @@
                 const goingLeft = direction === 'left';
                 const goingRight = direction === 'right';
 
-                if (keyPressed === 'ArrowLeft' && !goingRight) { direction = 'left'; }
-                if (keyPressed === 'ArrowUp' && !goingDown) { direction = 'up'; }
-                if (keyPressed === 'ArrowRight' && !goingLeft) { direction = 'right'; }
-                if (keyPressed === 'ArrowDown' && !goingUp) { direction = 'down'; }
+                if ((keyPressed === 'ArrowLeft' || keyPressed.toLowerCase() === 'a') && !goingRight) { direction = 'left'; }
+                if ((keyPressed === 'ArrowUp' || keyPressed.toLowerCase() === 'w') && !goingDown) { direction = 'up'; }
+                if ((keyPressed === 'ArrowRight' || keyPressed.toLowerCase() === 'd') && !goingLeft) { direction = 'right'; }
+                if ((keyPressed === 'ArrowDown' || keyPressed.toLowerCase() === 's') && !goingUp) { direction = 'down'; }
             });
 
             // Handle touch input for mobile devices
@@ -279,7 +326,8 @@
                 e.preventDefault();
                 touchStartX = e.touches[0].clientX;
                 touchStartY = e.touches[0].clientY;
-            });
+            }, {passive: false}); // passive: false to allow preventDefault
+
             canvas.addEventListener('touchend', e => {
                 const touchEndX = e.changedTouches[0].clientX;
                 const touchEndY = e.changedTouches[0].clientY;
@@ -307,8 +355,18 @@
 
             // Initial setup
             resizeCanvas();
-            window.addEventListener('resize', resizeCanvas);
+            window.addEventListener('resize', () => {
+                resizeCanvas();
+                // If game is over, ensure game message is correctly positioned after resize
+                if (gameMessage.style.display === 'block') {
+                    const canvasRect = canvas.getBoundingClientRect();
+                    gameMessage.style.top = `${canvasRect.top + canvasRect.height / 2}px`;
+                    gameMessage.style.left = `${canvasRect.left + canvasRect.width / 2}px`;
+                }
+            });
             restartBtn.addEventListener('click', startGame);
+            
+            // Wait for initial resize and start the game
             startGame();
         });
     </script>
